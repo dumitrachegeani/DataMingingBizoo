@@ -3,6 +3,11 @@ from selenium.webdriver.chrome.options import Options
 import time
 import random
 
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
+
+
 def delay():
     time.sleep(random.randrange(2, 5))
 
@@ -19,11 +24,12 @@ def buildLinks(startPage, driver):
     driver.get(startPage)
     list = []
     fileNames = []
-    for i in range(12, 34):
+    for i in range(1, 34):
         # daca nu este deschis suficient de mult nu vede categoriile
         sufix = ''
         while sufix == '':
-            label = driver.find_element_by_xpath('//*[@id="mobileFitlers"]/div[3]/div/div[1]/div[' + str(i) + ']/label')
+            category = str(i)
+            label = driver.find_element(By.XPATH, '//*[@id="mobileFitlers"]/div[2]/div/div[2]/div[%s]' % category)
             sufix = label.text
             print("largeste fereastra")
         print(sufix)
@@ -46,7 +52,7 @@ def buildNextPageLink(pageNo, eachLink):
 
 def findPageNumber(link, driver):
     driver.get(link)
-    return int(driver.find_element_by_xpath('/html/body/div[1]/div/div[2]/div[2]/div[2]/div[22]/nav/ul/li[6]/a').text)
+    return int(driver.find_element(By.XPATH, '/html/body/div[1]/div/div[2]/div[2]/div[2]/div[22]/nav/ul/li[6]/a').text)
 
 
 def getPhoneNumber(driver):
@@ -55,19 +61,19 @@ def getPhoneNumber(driver):
         # it has two locations: here, or on catch -show number-
         print(number)
         try:
-            driver.find_element_by_xpath('/html/body/section/div/div/div[1]/div/div[2]/div[2]/div[2]/div[2]/h6/a').click()
+            driver.find_element(By.XPATH, '/html/body/section/div/div/div[1]/div/div[2]/div[2]/div[2]/div[2]/h6/a').click()
             delay()
-            number = driver.find_element_by_xpath('/html/body/section/div/div/div[1]/div/div[2]/div[2]/div[2]/div[2]/h6/a').text
+            number = driver.find_element(By.XPATH, '/html/body/section/div/div/div[1]/div/div[2]/div[2]/div[2]/div[2]/h6/a').text
         except:
             print('exception')
-            driver.find_element_by_class_name('show-number-button').click()
+            driver.find_element(By.CLASS_NAME, 'show-number-button').click()
             delay()
-            number = driver.find_element_by_class_name('show-number-button').text
+            number = driver.find_element(By.CLASS_NAME, 'show-number-button').text
     return number
 
 
 def getWebsite(driver):
-    return driver.find_element_by_css_selector('a.text-sm.text-muted').text
+    return driver.find_elements(By.CSS_SELECTOR, 'a.text-sm.text-muted').text
 
 def getEmail(website):
     if website.find('http://www.') != -1:
@@ -80,15 +86,12 @@ def getEmail(website):
 
 if __name__ == '__main__':
     #opening the driver
-    bravePath = "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe"
     options = Options()
     #options.add_argument('--headless')
     #options.add_argument('disable-gpu')
-    #options.binary_location = bravePath
-    options.add_argument("--window-size=1325x744")
-    options.add_argument("user-data-dir=C:\\Users\\geany\\AppData\\Local\\Google\\Chrome\\User Data\\testingProfile")
+    options.add_argument("--window-size=1920x1080")
     options.add_argument("--incognito")
-    driver = webdriver.Chrome(options=options, executable_path='D:\\PyCharm Projects\\chromedriver.exe')
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     driver.delete_all_cookies()
     driver.set_window_size(1920, 1080)
 
@@ -108,7 +111,7 @@ if __name__ == '__main__':
             pagesNumber = findPageNumber(category, driver)
         # backup because HDD not reliable
         output = open(fileName, 'a')
-        backup_output = open('C:\\bizooCompanies\\' + fileName , 'a')
+        # backup_output = open('C:\\bizooCompanies\\' + fileName , 'a')
 
         driver.close()
         # mining all pages of ONE category (200 - 300 pages)
@@ -116,12 +119,12 @@ if __name__ == '__main__':
 
             nextPageLink = buildNextPageLink(eachPage, category)
             print('We are at page: ' + str(eachPage))
-            driver = webdriver.Chrome(options=options, executable_path='D:\\PyCharm Projects\\chromedriver.exe')
+            driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
             driver.set_window_size(1920, 1080)
             #get companies links
             try:
                 driver.get(nextPageLink)
-                companies = driver.find_elements_by_class_name('prod-name-link')
+                companies = driver.find_elements(By.CLASS_NAME, 'prod-name-link')
                 companiesLinks = [company.get_attribute('href') for company in companies]
                 companiesNames = [company.text for company in companies]
             except:
@@ -144,9 +147,9 @@ if __name__ == '__main__':
                     email = 'null'
                 # write it to csv files
                 writeToCsvRow(output, [companyName, website, email, phoneNumber])
-                writeToCsvRow(backup_output, [companyName, website, email, phoneNumber])
+                # writeToCsvRow(backup_output, [companyName, website, email, phoneNumber])
                 output.flush()
             # close to reopen driver
             driver.close()
             output.flush()
-            backup_output.flush()
+            # backup_output.flush()
